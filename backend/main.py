@@ -1,5 +1,12 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
+import sys
 from typing import Optional
+
+BACKEND_DIR = str(Path(__file__).resolve().parent)
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
@@ -17,7 +24,6 @@ from gradebook import (
     mark_attendance,
     record_score,
 )
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

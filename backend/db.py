@@ -39,7 +39,14 @@ def get_connection():
         finally:
             conn.close()
 
-
+def exec_sql(conn, sql: str, params: tuple = ()):
+    if USE_POSTGRES:
+        pg_sql = sql.replace("?", "%s")
+        cur = conn.cursor()
+        cur.execute(pg_sql, params)
+        return cur
+    return conn.execute(sql, params)
+    
 def init_db() -> None:
     if USE_POSTGRES:
         statements = [

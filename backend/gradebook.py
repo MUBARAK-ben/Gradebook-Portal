@@ -3,7 +3,8 @@ import io
 import sqlite3
 from datetime import date
 from typing import Optional
-from db import get_connection
+import psycopg
+from db import exec_sql, get_connection
 
 
 def letter_grade(percentage: float) -> str:
@@ -20,8 +21,9 @@ def letter_grade(percentage: float) -> str:
 
 def list_classes() -> list[str]:
     with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT DISTINCT class_name FROM students ORDER BY class_name ASC"
+        rows = exec_sql(
+            conn,
+            "SELECT DISTINCT class_name FROM students ORDER BY class_name ASC",
         ).fetchall()
     return [row["class_name"] for row in rows]
 
@@ -29,7 +31,8 @@ def list_classes() -> list[str]:
 def list_students(class_filter: Optional[str] = None) -> list[dict]:
     with get_connection() as conn:
         if class_filter and class_filter.strip():
-            rows = conn.execute(
+            rows = exec_sql(
+                conn,
                 """
                 SELECT id, full_name, reg_no, class_name
                 FROM students
@@ -39,8 +42,9 @@ def list_students(class_filter: Optional[str] = None) -> list[dict]:
                 (class_filter.strip(),),
             ).fetchall()
         else:
-            rows = conn.execute(
-                "SELECT id, full_name, reg_no, class_name FROM students ORDER BY full_name ASC"
+            rows = exec_sql(
+                conn,
+                "SELECT id, full_name, reg_no, class_name FROM students ORDER BY full_name ASC",
             ).fetchall()
     return [dict(row) for row in rows]
 
@@ -55,45 +59,49 @@ def add_student(full_name: str, reg_no: str, class_name: str) -> dict:
 
     try:
         with get_connection() as conn:
-            cursor = conn.execute(
-                "INSERT INTO students (full_name, reg_no, class_name) VALUES (?, ?, ?)",
+            row = exec_sql(
+                conn,
+                "INSERT INTO students (full_name, reg_no, class_name) VALUES (?, ?, ?) RETURNING id",
                 (full_name, reg_no, class_name),
-            )
-            student_id = cursor.lastrowid
-        return {
-            "id": student_id,
-            "full_name": full_name,
-            "reg_no": reg_no,
-            "class_name": class_name,
-        }
-    except sqlite3.IntegrityError as exc:
+            ).fetchone()
+            student_id = row["id"]
+            return {
+                "id": student_id,
+                "full_name": full_name,
+                "reg_no": reg_no,
+                "class_name": class_name,
+            }
+    except (sqlite3.IntegrityError, psycopg.IntegrityError) as exc:
         raise ValueError(f"Registration number '{reg_no}' already exists.") from exc
 
 
 def delete_student(student_id: int) -> bool:
     with get_connection() as conn:
-        cursor = conn.execute("DELETE FROM students WHERE id = ?", (student_id,))
-    return cursor.rowcount > 0
+        cursor = exec_sql(conn, "DELETE FROM students WHERE id = ?", (student_id,))
+        return cursor.rowcount > 0
 
 
 def mark_attendance(
     reg_no: str, status: str, session_date: Optional[str] = None
 ) -> dict:
     status = status.strip().lower()
-    if status not in {"present", "absent", "late"}:
-        raise ValueError("Status must be 'present', 'absent', or 'late'.")
+    if status not in ("present", "absent", "late"):
+        raise ValueError("status must be 'present', 'absent', or 'late'.")
 
     target_date = (session_date or date.today().isoformat()).strip()
     reg_no = reg_no.strip().upper()
 
     with get_connection() as conn:
-        student = conn.execute(
-            "SELECT id, full_name, reg_no FROM students WHERE reg_no = ?", (reg_no,)
+        student = exec_sql(
+            conn,
+            "SELECT id, full_name, reg_no FROM students WHERE reg_no = ?",
+            (reg_no,),
         ).fetchone()
         if not student:
-            raise LookupError(f"Student '{reg_no}' not found.")
+            raise LookupError(f"student '{reg_no}' not found.")
 
-        conn.execute(
+        exec_sql(
+            conn,
             """
             INSERT INTO attendance (student_id, session_date, status)
             VALUES (?, ?, ?)
@@ -112,7 +120,7 @@ def mark_attendance(
 
 
 def record_score(
-    reg_no: str, assessment_title: str, score: float, max_score: float
+    reg_no: str, assessment_title: str, score: float, max_score: float = 100.0
 ) -> dict:
     assessment_title = assessment_title.strip()
     reg_no = reg_no.strip().upper()
@@ -122,23 +130,27 @@ def record_score(
     if max_score <= 0:
         raise ValueError("Maximum score must be greater than zero.")
     if score < 0 or score > max_score:
-        raise ValueError(f"Score must be between 0 and {max_score}.")
+        raise ValueError(f"score must be between 0 and {max_score}.")
 
     with get_connection() as conn:
-        student = conn.execute(
-            "SELECT id, full_name, reg_no FROM students WHERE reg_no = ?", (reg_no,)
+        student = exec_sql(
+            conn,
+            "SELECT id, full_name, reg_no FROM students WHERE reg_no = ?",
+            (reg_no,),
         ).fetchone()
         if not student:
-            raise LookupError(f"Student '{reg_no}' not found.")
+            raise LookupError(f"student '{reg_no}' not found.")
 
-        cursor = conn.execute(
+        row = exec_sql(
+            conn,
             """
             INSERT INTO scores (student_id, assessment_title, score, max_score)
             VALUES (?, ?, ?, ?)
+            RETURNING id
             """,
             (student["id"], assessment_title, score, max_score),
-        )
-        score_id = cursor.lastrowid
+        ).fetchone()
+        score_id = row["id"]
 
     return {
         "id": score_id,
@@ -153,7 +165,8 @@ def record_score(
 def list_scores(class_filter: Optional[str] = None) -> list[dict]:
     with get_connection() as conn:
         if class_filter and class_filter.strip():
-            rows = conn.execute(
+            rows = exec_sql(
+                conn,
                 """
                 SELECT sc.id, st.reg_no, st.full_name, st.class_name,
                        sc.assessment_title, sc.score, sc.max_score, sc.recorded_at
@@ -165,22 +178,23 @@ def list_scores(class_filter: Optional[str] = None) -> list[dict]:
                 (class_filter.strip(),),
             ).fetchall()
         else:
-            rows = conn.execute(
+            rows = exec_sql(
+                conn,
                 """
                 SELECT sc.id, st.reg_no, st.full_name, st.class_name,
                        sc.assessment_title, sc.score, sc.max_score, sc.recorded_at
                 FROM scores sc
                 JOIN students st ON st.id = sc.student_id
                 ORDER BY sc.id DESC
-                """
+                """,
             ).fetchall()
     return [dict(row) for row in rows]
 
 
 def delete_score(score_id: int) -> bool:
     with get_connection() as conn:
-        cursor = conn.execute("DELETE FROM scores WHERE id = ?", (score_id,))
-    return cursor.rowcount > 0
+        cursor = exec_sql(conn, "DELETE FROM scores WHERE id = ?", (score_id,))
+        return cursor.rowcount > 0
 
 
 def get_class_summary(class_filter: Optional[str] = None) -> list[dict]:
@@ -189,15 +203,21 @@ def get_class_summary(class_filter: Optional[str] = None) -> list[dict]:
 
     with get_connection() as conn:
         for s in students:
-            att_rows = conn.execute(
-                "SELECT status FROM attendance WHERE student_id = ?", (s["id"],)
+            att_rows = exec_sql(
+                conn,
+                "SELECT status FROM attendance WHERE student_id = ?",
+                (s["id"],),
             ).fetchall()
             total_sessions = len(att_rows)
             attended = sum(1 for r in att_rows if r["status"] in ("present", "late"))
-            attendance_pct = (attended / total_sessions * 100) if total_sessions > 0 else 0.0
+            attendance_pct = (
+                (attended / total_sessions) * 100 if total_sessions > 0 else 0.0
+            )
 
-            score_rows = conn.execute(
-                "SELECT score, max_score FROM scores WHERE student_id = ?", (s["id"],)
+            score_rows = exec_sql(
+                conn,
+                "SELECT score, max_score FROM scores WHERE student_id = ?",
+                (s["id"],),
             ).fetchall()
             if score_rows:
                 pcts = [(r["score"] / r["max_score"]) * 100 for r in score_rows]
@@ -221,7 +241,9 @@ def get_class_summary(class_filter: Optional[str] = None) -> list[dict]:
                 }
             )
 
-    summary.sort(key=lambda item: (item["grade"] == "N/A", -item["avg_percentage"]))
+    summary.sort(
+        key=lambda item: (item["grade"] == "N/A", -item["avg_percentage"])
+    )
     return summary
 
 
