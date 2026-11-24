@@ -2,7 +2,7 @@
 const API_BASE =
   window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
     ? "http://127.0.0.1:8000"
-    : "https://YOUR-GRADEBOOK-API.onrender.com";
+   : "https://gradebook-portal.onrender.com";
 
 const classFilterEl = document.getElementById("class-filter");
 const apiStatusEl = document.getElementById("api-status");
