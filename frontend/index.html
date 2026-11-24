@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Classroom Gradebook & Attendance Portal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div>
+        <h1>Classroom Gradebook & Attendance</h1>
+        <p class="subtitle">Track rosters, daily attendance, quiz scores, and rankings</p>
+      </div>
+      <div class="topbar-actions">
+        <select id="class-filter" aria-label="Filter by class">
+          <option value="">All Classes</option>
+        </select>
+        <button id="export-btn" class="btn btn-secondary" type="button">Export CSV</button>
+        <span id="api-status" class="badge badge-offline">Checking API...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="toast" class="toast hidden" role="status"></div>
+
+    <!-- Quick Action Forms -->
+    <section class="grid-3">
+      <!-- Add Student -->
+      <article class="card">
+        <h2>Register Student</h2>
+        <form id="student-form" class="stack">
+          <label>
+            Full Name
+            <input type="text" id="student-name" placeholder="e.g. Maryam Bello" required />
+          </label>
+          <label>
+            Registration No.
+            <input type="text" id="student-reg" placeholder="e.g. STU-004" required />
+          </label>
+          <label>
+            Class
+            <input type="text" id="student-class" placeholder="e.g. JSS 1A" required />
+          </label>
+          <button type="submit" class="btn btn-primary">Add Student</button>
+        </form>
+      </article>
+
+      <!-- Mark Attendance -->
+      <article class="card">
+        <h2>Mark Attendance</h2>
+        <form id="attendance-form" class="stack">
+          <label>
+            Student
+            <select id="att-reg" required>
+              <option value="">Select student...</option>
+            </select>
+          </label>
+          <label>
+            Status
+            <select id="att-status" required>
+              <option value="present">Present</option>
+              <option value="late">Late</option>
+              <option value="absent">Absent</option>
+            </select>
+          </label>
+          <label>
+            Session Date
+            <input type="date" id="att-date" required />
+          </label>
+          <button type="submit" class="btn btn-primary">Save Attendance</button>
+        </form>
+      </article>
+
+      <!-- Record Quiz/Test Score -->
+      <article class="card">
+        <h2>Record Quiz / Test Score</h2>
+        <form id="score-form" class="stack">
+          <label>
+            Student
+            <select id="score-reg" required>
+              <option value="">Select student...</option>
+            </select>
+          </label>
+          <label>
+            Assessment Title
+            <input type="text" id="score-title" placeholder="e.g. Arabic Grammar Quiz 1" required />
+          </label>
+          <div class="row-2">
+            <label>
+              Score
+              <input type="number" id="score-val" step="0.5" min="0" placeholder="18" required />
+            </label>
+            <label>
+              Max Score
+              <input type="number" id="score-max" step="0.5" min="1" value="20" required />
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary">Record Score</button>
+        </form>
+      </article>
+    </section>
+
+    <!-- Class Summary & Rankings -->
+    <section class="card">
+      <div class="section-header">
+        <h2>Gradebook & Attendance Summary</h2>
+        <span id="summary-count" class="muted">0 students</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Reg No.</th>
+              <th>Student Name</th>
+              <th>Class</th>
+              <th>Assessments</th>
+              <th>Average</th>
+              <th>Grade</th>
+              <th>Attendance</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="summary-body">
+            <tr>
+              <td colspan="9" class="muted center">Loading summary...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Recent Assessment Scores -->
+    <section class="card">
+      <div class="section-header">
+        <h2>Recent Assessment Scores</h2>
+        <span id="scores-count" class="muted">0 entries</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Reg No.</th>
+              <th>Class</th>
+              <th>Assessment</th>
+              <th>Score</th>
+              <th>Percentage</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="scores-body">
+            <tr>
+              <td colspan="7" class="muted center">Loading scores...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
