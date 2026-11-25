@@ -216,7 +216,7 @@ def get_class_summary(class_filter: Optional[str] = None) -> list[dict]:
 
             score_rows = exec_sql(
                 conn,
-                "SELECT score, max_score FROM scores WHERE student_id = ?",
+                "SELECT score_value AS score, max_score FROM scores WHERE student_id = ?",
                 (s["id"],),
             ).fetchall()
             if score_rows:
