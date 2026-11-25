@@ -144,7 +144,7 @@ def record_score(
         row = exec_sql(
             conn,
             """
-            INSERT INTO scores (student_id, assessment_title, score, max_score)
+            INSERT INTO scores (student_id, assessment_title, score_value, max_score)
             VALUES (?, ?, ?, ?)
             RETURNING id
             """,
