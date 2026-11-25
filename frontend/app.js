@@ -151,8 +151,8 @@ async function refreshAll() {
     await loadClasses();
     await Promise.all([loadStudentDropdowns(), loadSummary(), loadScores()]);
   } catch (err) {
-    showToast("Could not reach the FastAPI server on port 8000.", "error");
-  }
+  showToast(err.message || "Could not reach the backend server.", "error");
+}
 }
 
 document.getElementById("student-form").addEventListener("submit", async (e) => {
