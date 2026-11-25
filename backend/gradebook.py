@@ -169,7 +169,7 @@ def list_scores(class_filter: Optional[str] = None) -> list[dict]:
                 conn,
                 """
                 SELECT sc.id, st.reg_no, st.full_name, st.class_name,
-                       sc.assessment_title, sc.score, sc.max_score, sc.recorded_at
+               sc.assessment_title, sc.score_value AS score, sc.max_score
                 FROM scores sc
                 JOIN students st ON st.id = sc.student_id
                 WHERE LOWER(st.class_name) = LOWER(?)
@@ -181,8 +181,8 @@ def list_scores(class_filter: Optional[str] = None) -> list[dict]:
             rows = exec_sql(
                 conn,
                 """
-                SELECT sc.id, st.reg_no, st.full_name, st.class_name,
-                       sc.assessment_title, sc.score, sc.max_score, sc.recorded_at
+               SELECT sc.id, st.reg_no, st.full_name, st.class_name,
+               sc.assessment_title, sc.score_value AS score, sc.max_score
                 FROM scores sc
                 JOIN students st ON st.id = sc.student_id
                 ORDER BY sc.id DESC
